@@ -56,11 +56,7 @@ Course project: Security of IoT Protocols and Distributed Systems
 
 Academic year: 2025–2026
 
-## Authors
 
-- Yemen Taoufiq Mahmoud
-- Yomna Hlaili
-- Youssef Jbeniani
 
 ## References
 
