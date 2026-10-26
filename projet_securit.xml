@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+// ─────────────────────────────────────────
+// CHANNELS (synchronization between automata)
+// ─────────────────────────────────────────
+chan syn;          // Client sends SYN, Server receives
+chan syn_ack;      // Server sends SYN-ACK, Client receives  
+chan ack;          // Client sends ACK, Server receives
+chan fin;          // Client sends FIN, Server receives
+chan ack_fin;      // Server sends ACK of FIN, Client receives
+chan fin2;         // Server sends its own FIN, Client receives
+chan ack_fin2;     // Client sends final ACK, Server receives
+broadcast chan rst;          // RST segment (used by attacker)
+
+// ─────────────────────────────────────────
+// GLOBAL VARIABLES
+// ─────────────────────────────────────────
+int syn_count = 0;        // tracks SYN retransmissions
+int connection_alive = 0; // 1 when connection is ESTABLISHED
+bool rst_injected = false; // flag for RST attack
+bool syn_received_flag = false;
+// ─────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────
+const int MAX_SYN = 3;    // max SYN retransmission attempts
+const int SYN_TIMEOUT = 10;  // abstract timeout value
+const int TIME_WAIT_DUR = 10; // abstract 2xMSL duration
+
+clock c;
+
+
+</declaration>
+	<template>
+		<name>Server</name>
+		<declaration>int queue = 0;
+const int MAX_QUEUE = 5;  // server's half-open connection limit
+bool queue_full = false;</declaration>
+		<location id="id0" x="527" y="296">
+			<name x="517" y="262">CLOSED</name>
+		</location>
+		<location id="id1" x="-373" y="59">
+			<name x="-365" y="24">LISTEN</name>
+		</location>
+		<location id="id2" x="-33" y="58">
+			<name x="-25" y="24">SYN_RECEIVED</name>
+		</location>
+		<location id="id3" x="621" y="59">
+			<name x="612" y="25">ESTABLISHED</name>
+		</location>
+		<location id="id4" x="910" y="59">
+			<name x="900" y="25">CLOSE_WAIT</name>
+		</location>
+		<location id="id5" x="1207" y="59">
+			<name x="1197" y="25">LAST_ACK</name>
+		</location>
+		<location id="id6" x="289" y="59">
+			<name x="279" y="25">SYN_ACK_SENT</name>
+			<committed/>
+		</location>
+		<location id="id7" x="1012" y="296">
+			<name x="1002" y="262">FIN_SENT</name>
+		</location>
+		<init ref="id1"/>
+		<transition id="id8">
+			<source ref="id3"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-212" y="211">rst?</label>
+			<label kind="assignment" x="-212" y="228">connection_alive := 0, queue := 0</label>
+			<nail x="621" y="211"/>
+			<nail x="-399" y="211"/>
+			<nail x="-399" y="84"/>
+		</transition>
+		<transition id="id9">
+			<source ref="id1"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-552" y="-86">queue &gt;= MAX_QUEUE</label>
+			<label kind="synchronisation" x="-552" y="-69">syn?</label>
+			<label kind="assignment" x="-552" y="-52">queue_full := true</label>
+			<nail x="-399" y="-27"/>
+			<nail x="-560" y="-27"/>
+		</transition>
+		<transition id="id10">
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-331" y="-61">c &gt;= SYN_TIMEOUT</label>
+			<label kind="assignment" x="-331" y="-44">syn_received_flag = false</label>
+			<nail x="-33" y="-43"/>
+			<nail x="-373" y="-43"/>
+		</transition>
+		<transition id="id11">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<nail x="-416" y="296"/>
+			<nail x="-416" y="59"/>
+		</transition>
+		<transition id="id12">
+			<source ref="id7"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="731" y="296">ack_fin2?</label>
+		</transition>
+		<transition id="id13">
+			<source ref="id5"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="1148" y="296">fin2!</label>
+			<nail x="1216" y="76"/>
+			<nail x="1216" y="296"/>
+		</transition>
+		<transition id="id14">
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="1012" y="59">ack_fin!</label>
+		</transition>
+		<transition id="id15">
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="689" y="59">fin?</label>
+			<label kind="assignment" x="689" y="76">connection_alive = 0</label>
+		</transition>
+		<transition id="id16">
+			<source ref="id6"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="400" y="59">ack?</label>
+			<label kind="assignment" x="400" y="76">connection_alive = 1,
+queue--</label>
+		</transition>
+		<transition id="id17">
+			<source ref="id6"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-110" y="135">c &gt;= SYN_TIMEOUT</label>
+			<label kind="assignment" x="-110" y="152">c:=0</label>
+			<nail x="289" y="135"/>
+			<nail x="-373" y="135"/>
+		</transition>
+		<transition id="id18">
+			<source ref="id2"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="94" y="59">syn_ack!</label>
+			<label kind="assignment" x="94" y="75">c:=0</label>
+		</transition>
+		<transition id="id19">
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-288" y="33">queue &lt; MAX_QUEUE</label>
+			<label kind="synchronisation" x="-288" y="58">syn?</label>
+			<label kind="assignment" x="-288" y="75">syn_received_flag = true,
+queue++</label>
+		</transition>
+	</template>
+	<template>
+		<name>Client</name>
+		<location id="id20" x="-289" y="136">
+			<name x="-323" y="102">CLOSED</name>
+		</location>
+		<location id="id21" x="714" y="136">
+			<name x="704" y="102">FIN_WAIT_1</name>
+		</location>
+		<location id="id22" x="952" y="136">
+			<name x="942" y="102">FIN_WAIT_2</name>
+		</location>
+		<location id="id23" x="1198" y="382">
+			<name x="1207" y="348">TIME_WAIT</name>
+			<label kind="invariant" x="1139" y="399">c &lt;= TIME_WAIT_DUR</label>
+		</location>
+		<location id="id24" x="510" y="136">
+			<name x="500" y="102">ESTABLISHED</name>
+		</location>
+		<location id="id25" x="-25" y="136">
+			<name x="-51" y="102">SYN_SENT</name>
+			<label kind="invariant" x="-102" y="153">c &lt;= SYN_TIMEOUT</label>
+		</location>
+		<location id="id26" x="229" y="136">
+			<name x="219" y="102">ACK_on_the_way</name>
+		</location>
+		<location id="id27" x="1198" y="136">
+			<name x="1188" y="102">SENDING_ACK</name>
+			<urgent/>
+		</location>
+		<init ref="id20"/>
+		<transition id="id28">
+			<source ref="id26"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-127" y="-76">c &gt;= SYN_TIMEOUT</label>
+			<label kind="assignment" x="-127" y="-59">c:=0</label>
+			<nail x="229" y="-25"/>
+			<nail x="-289" y="-25"/>
+		</transition>
+		<transition id="id29">
+			<source ref="id27"/>
+			<target ref="id23"/>
+			<label kind="synchronisation" x="1198" y="229">ack_fin2!</label>
+		</transition>
+		<transition id="id30">
+			<source ref="id22"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="1037" y="136">fin2?</label>
+			<label kind="assignment" x="1037" y="153">c := 0</label>
+		</transition>
+		<transition id="id31">
+			<source ref="id26"/>
+			<target ref="id24"/>
+			<label kind="synchronisation" x="289" y="136">ack!</label>
+			<label kind="assignment" x="289" y="153">connection_alive = 1</label>
+		</transition>
+		<transition id="id32">
+			<source ref="id25"/>
+			<target ref="id26"/>
+			<label kind="synchronisation" x="59" y="136">syn_ack?</label>
+			<label kind="assignment" x="59" y="153">c := 0</label>
+		</transition>
+		<transition id="id33">
+			<source ref="id23"/>
+			<target ref="id20"/>
+			<label kind="guard" x="221" y="382">c &gt;= TIME_WAIT_DUR</label>
+			<label kind="assignment" x="238" y="399">syn_count := 0</label>
+			<nail x="1071" y="382"/>
+			<nail x="-357" y="382"/>
+			<nail x="-357" y="128"/>
+		</transition>
+		<transition id="id34">
+			<source ref="id21"/>
+			<target ref="id22"/>
+			<label kind="synchronisation" x="799" y="136">ack_fin?</label>
+		</transition>
+		<transition id="id35">
+			<source ref="id24"/>
+			<target ref="id20"/>
+			<label kind="synchronisation" x="-161" y="306">rst?</label>
+			<label kind="assignment" x="-161" y="323">connection_alive = 0</label>
+			<nail x="510" y="306"/>
+			<nail x="-298" y="306"/>
+			<nail x="-298" y="136"/>
+		</transition>
+		<transition id="id36">
+			<source ref="id24"/>
+			<target ref="id21"/>
+			<label kind="synchronisation" x="544" y="136">fin!</label>
+			<label kind="assignment" x="544" y="153">connection_alive = 0</label>
+		</transition>
+		<transition id="id37">
+			<source ref="id25"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-272" y="221">c &gt;= SYN_TIMEOUT &amp;&amp; syn_count &gt;= MAX_SYN</label>
+			<label kind="assignment" x="-272" y="238">syn_count := 0</label>
+			<nail x="-26" y="212"/>
+			<nail x="-272" y="212"/>
+		</transition>
+		<transition id="id38">
+			<source ref="id25"/>
+			<target ref="id25"/>
+			<label kind="guard" x="-102" y="17">c &gt;= SYN_TIMEOUT &amp;&amp; syn_count &lt; MAX_SYN</label>
+			<label kind="synchronisation" x="-102" y="34">syn!</label>
+			<label kind="assignment" x="-102" y="51">c := 0, syn_count++</label>
+			<nail x="-102" y="77"/>
+			<nail x="68" y="77"/>
+		</transition>
+		<transition id="id39">
+			<source ref="id20"/>
+			<target ref="id25"/>
+			<label kind="guard" x="-255" y="119">syn_count &lt; MAX_SYN</label>
+			<label kind="synchronisation" x="-255" y="136">syn!</label>
+			<label kind="assignment" x="-272" y="153">c := 0, syn_count++</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">Attacker_SYN</name>
+		<declaration>// Place local declarations here.
+int flood_count = 0;
+const int FLOOD_LIMIT = 5;  // abstract: represents queue exhaustion
+</declaration>
+		<location id="id40" x="-255" y="51">
+			<name x="-265" y="17">IDLE</name>
+		</location>
+		<location id="id41" x="-68" y="51">
+			<name x="-51" y="25">FLOODING</name>
+		</location>
+		<location id="id42" x="246" y="51">
+			<name x="236" y="17">SUCCESS</name>
+		</location>
+		<init ref="id40"/>
+		<transition id="id43">
+			<source ref="id41"/>
+			<target ref="id42"/>
+			<label kind="guard" x="-34" y="59">flood_count &gt;= FLOOD_LIMIT</label>
+		</transition>
+		<transition id="id44">
+			<source ref="id41"/>
+			<target ref="id41"/>
+			<label kind="guard" x="-144" y="-127">flood_count &lt; FLOOD_LIMIT</label>
+			<label kind="synchronisation" x="-144" y="-110">syn!</label>
+			<label kind="assignment" x="-144" y="-93">flood_count++</label>
+			<nail x="17" y="-68"/>
+			<nail x="-153" y="-68"/>
+		</transition>
+		<transition id="id45">
+			<source ref="id40"/>
+			<target ref="id41"/>
+			<label kind="synchronisation" x="-187" y="25">syn!</label>
+			<label kind="assignment" x="-238" y="59">flood_count := 1</label>
+		</transition>
+	</template>
+	<template>
+		<name>Attacker_RST</name>
+		<declaration>clock a;  // attacker's clock</declaration>
+		<location id="id46" x="-382" y="-51">
+			<name x="-392" y="-85">WAIT</name>
+		</location>
+		<location id="id47" x="-127" y="-51">
+			<name x="-137" y="-85">OBSERVED</name>
+		</location>
+		<location id="id48" x="221" y="-51">
+			<name x="211" y="-85">INJECTING</name>
+		</location>
+		<location id="id49" x="552" y="-51">
+			<name x="542" y="-85">SUCCESS</name>
+		</location>
+		<init ref="id46"/>
+		<transition id="id50">
+			<source ref="id48"/>
+			<target ref="id49"/>
+			<label kind="guard" x="306" y="-42">connection_alive == 1</label>
+			<label kind="synchronisation" x="306" y="-25">rst!</label>
+			<label kind="assignment" x="306" y="-8">rst_injected := true</label>
+		</transition>
+		<transition id="id51">
+			<source ref="id47"/>
+			<target ref="id48"/>
+			<label kind="guard" x="25" y="-85">a &gt;= 1</label>
+		</transition>
+		<transition id="id52">
+			<source ref="id46"/>
+			<target ref="id47"/>
+			<label kind="guard" x="-364" y="-85">connection_alive == 1</label>
+			<label kind="assignment" x="-364" y="-51">a := 0</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+Client_inst = Client();
+Server_inst = Server();
+Attacker_SYN_inst = Attacker_SYN();
+Attacker_RST_inst = Attacker_RST();
+
+// List one or more processes to be composed into a system.
+system Client_inst, Server_inst,Attacker_SYN_inst, Attacker_RST_inst;
+
+
+
+
+
+
+</system>
+	<queries>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 23:15:43 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Client_inst.ESTABLISHED and Server_inst.ESTABLISHED</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 11:34:11 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Client_inst.CLOSED and Server_inst.LISTEN</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 23:15:45 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Client_inst.TIME_WAIT</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 23:15:47 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>SYN FLOOD ATTACK :</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Attacker_SYN_inst.SUCCESS</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 23:40:50 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Server_inst.queue_full</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-28 19:57:58 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Attacker_SYN_inst.SUCCESS and Client_inst.SYN_SENT and Server_inst.queue_full</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-28 19:58:28 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Server_inst.queue_full and Client_inst.CLOSED</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-28 19:59:27 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>RST INJECTION ATTACK :</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Attacker_RST_inst.SUCCESS</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-28 20:37:24 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; rst_injected and Client_inst.CLOSED and Server_inst.LISTEN</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-28 20:37:49 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; rst_injected and not Client_inst.FIN_WAIT_1</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-04-29 19:45:47 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>SYN FLOOD ATTACK Probability :</formula>
+			<comment/>
+		</query>
+	</queries>
+</nta>
