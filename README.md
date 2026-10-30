@@ -1,69 +1,60 @@
-# Formal Verification of the TCP Protocol Using UPPAAL
+# Formal Verification of TCP with UPPAAL
 
-## Overview
+A timed-automata model of selected TCP connection behaviors, developed in UPPAAL for an academic study of protocol security.
 
-This academic project applies formal verification techniques to the Transmission Control Protocol (TCP) using UPPAAL and timed automata.
+The project examines connection establishment and termination, timing constraints, and two attack scenarios: SYN flooding and TCP reset (RST) injection.
 
-The project studies TCP connection establishment, connection termination, timing constraints, and selected security attacks.
-
-## Objectives
+## Scope
 
 - Model TCP client and server behavior using timed automata.
-- Verify reachability and deadlock-related properties.
-- Model SYN Flood and TCP RST Injection attacks.
-- Analyze security countermeasures, including SYN Cookies and Challenge ACK.
+- Explore connection establishment and termination.
+- Check reachability and deadlock-related properties.
+- Represent SYN Flood and TCP RST Injection attacks.
+- Study SYN Cookies and Challenge ACKs as countermeasures.
 
-## Technologies
+## Model
 
-- **UPPAAL 5.0 / UPPAAL-SMC** — formal modeling and verification
-- **TCP** — protocol specified in RFC 9293
-- **Timed automata** — system modeling and analysis
+The repository's UPPAAL model is [`projet_securit.xml`](projet_securit.xml). It contains the client, server, both attacker automata, and the verification queries.
 
-## Project Structure
+> The XML model includes the attacker automata. Countermeasure implementations discussed in the project may require a separate or updated model.
 
-- `projet_securit.xml` — UPPAAL model containing the Client, Server, SYN Flood attacker, RST attacker, and verification queries.
-- `Rapport_Projet_securit.pdf` — project report describing the methodology, security analysis, verification results, and proposed countermeasures.
+## Open in UPPAAL
 
-## Security Attacks Studied
+1. Install UPPAAL from the [official website](https://uppaal.org/).
+2. Open `projet_securit.xml` in UPPAAL.
+3. Inspect the automata and run the verification queries included in the model.
 
-### 1. SYN Flood
+## Security scenarios
 
-The model represents repeated SYN requests that can exhaust the server's half-open connection queue, potentially preventing legitimate connections.
+### SYN Flood
 
-### 2. TCP RST Injection
+The model represents repeated SYN requests that can consume capacity for half-open connections and interfere with legitimate connection attempts.
 
-The model represents an attacker injecting a TCP RST segment to terminate an established connection.
+### TCP RST Injection
 
-## Countermeasures Discussed
+The model represents an attacker injecting a TCP RST segment in an attempt to terminate an established connection.
 
-- **SYN Cookies** — mitigate SYN Flood attacks by avoiding the allocation of connection state before the final handshake acknowledgment.
-- **Challenge ACK (RFC 5961)** — helps protect TCP connections against blind RST injection.
+## Countermeasures considered
 
-See the project report for the countermeasure analysis and its reported verification results.
+- **SYN Cookies** reduce the need to retain connection state before the final handshake acknowledgment. See [RFC 4987](https://www.rfc-editor.org/rfc/rfc4987).
+- **Challenge ACKs** improve resilience to blind, in-window attacks, including forged resets. See [RFC 5961](https://www.rfc-editor.org/rfc/rfc5961).
 
-## How to Open the Model
+## Technology
 
-1. Install UPPAAL from the [official UPPAAL website](https://uppaal.org/).
-2. Download `projet_securit.xml` from this repository.
-3. Open the XML file in UPPAAL.
-4. Inspect the automata and verification queries.
+- [UPPAAL 5.0 / UPPAAL-SMC](https://uppaal.org/) — timed-automata modeling and verification
+- [TCP, RFC 9293](https://www.rfc-editor.org/rfc/rfc9293) — protocol specification
 
-**Note:** The uploaded XML represents the model with both attacker automata. The countermeasure implementations described in the report may require a separate or updated model.
+## Academic context
 
-## Academic Context
-
-Course project: Security of IoT Protocols and Distributed Systems
-
-Academic year: 2025–2026
-
-
+**Course:** Security of IoT Protocols and Distributed Systems  
+**Academic year:** 2025–2026
 
 ## References
 
-- RFC 9293 — Transmission Control Protocol (TCP)
-- RFC 4987 — TCP SYN Flooding Attacks and Common Mitigations
-- RFC 5961 — Improving TCP's Robustness to Blind In-Window Attacks
+- [RFC 9293 — Transmission Control Protocol (TCP)](https://www.rfc-editor.org/rfc/rfc9293)
+- [RFC 4987 — TCP SYN Flooding Attacks and Common Mitigations](https://www.rfc-editor.org/rfc/rfc4987)
+- [RFC 5961 — Improving TCP's Robustness to Blind In-Window Attacks](https://www.rfc-editor.org/rfc/rfc5961)
 
 ## License
 
-This project is provided for academic and educational purposes. No license has been specified yet.
+No license has been specified for this project.
